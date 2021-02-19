@@ -24,17 +24,26 @@ int run(int (* cmd)(const char*), const char* args)
 	return cmd(args);
 }
 
+/**
+ * @brief Struct containing pointer to the command string and the first argument.
+ */
 typedef struct PipeSegmentMeta {
 	char* cmd;
 	char* first_arg;
 } PipeSegmentMeta;
 
+/**
+ * @brief Struct containing an array of pipe segment and size metadata.
+ */
 typedef struct PipeSegments {
 	PipeSegmentMeta* metas;
 	int size;
 } PipeSegments ;
 
-struct PipeSegmentMeta inner_tokenize(char* start) {
+/**
+ * @brief Tokenize individual pipe segment string.
+ */
+PipeSegmentMeta inner_tokenize(char* start) {
 	PipeSegmentMeta cmd_meta = {
 		strtok(start, TOKENS),
 		strtok(NULL, TOKENS)
@@ -42,12 +51,15 @@ struct PipeSegmentMeta inner_tokenize(char* start) {
 	return cmd_meta;
 }
 
+/**
+ * @brief Generate new PipeSegments struct from line read from stdin.
+ */
 PipeSegments* new_pipe_segments(char* line, int max_segments) {
 	PipeSegments* psegs = malloc(sizeof(PipeSegments));
 	psegs->metas = malloc(max_segments * sizeof(PipeSegmentMeta));
 	psegs->size = 0;
 
-	char* segments[max_segments];
+	char* segments[max_segments];  // TODO: make vector
 	for(char* token = strtok(line, PIPE_TOKEN);
 	    token;
 	    token = strtok(NULL, PIPE_TOKEN),
