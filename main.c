@@ -19,7 +19,7 @@ char* input(const char* prompt)
 	return fgets(inbuffer, BUFFER_SIZE, stdin);
 }
 
-int run(int (* cmd)(const char*), const char* args)
+int run(int (* cmd)(char*), char* args)
 {
 	return cmd(args);
 }
@@ -82,7 +82,7 @@ void free_pipe_segments(PipeSegments* ps) {
 
 int main()
 {
-
+	setup();
 	while (true) {
 		char* ret = input(PROMPT);
 		if (!ret) {
@@ -101,7 +101,10 @@ int main()
 			printf("%s %s\n", pipe_segs->metas[i].cmd, pipe_segs->metas[i].first_arg);
 		}
 
+		char b[10000];
 		free_pipe_segments(pipe_segs);
+		printf("%d\n", run(pwd, b));
+		printf("%s\n", b);
 		break;
 	}
 	return 0;

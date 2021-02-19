@@ -5,11 +5,14 @@
 #ifndef BUILTINS_H
 #define BUILTINS_H
 
-const char* const builtin_names[];
-int (* builtins_func[])(const char*);
+#define TOTAL_BUILTINS 3
+
+//const char* builtin_names[TOTAL_BUILTINS];
+//int (* builtins_func[TOTAL_BUILTINS])(char*);
 
 int pwd(char* outbuffer);
-int cd(const char* path);
-int ls(const char* path);
+int cd(char* path);
+int ls(char* path);
+void setup();
 
 #endif //BUILTINS_H

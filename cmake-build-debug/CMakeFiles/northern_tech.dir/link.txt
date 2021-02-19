@@ -1,1 +1,0 @@
-/usr/bin/cc -g -pedantic -Wall -fsanitize=address -g   CMakeFiles/northern_tech.dir/main.c.o  -o northern_tech 

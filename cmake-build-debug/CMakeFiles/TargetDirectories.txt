@@ -1,3 +1,0 @@
-/home/kotzaboss/Code/C/minimalist-shell/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/home/kotzaboss/Code/C/minimalist-shell/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/kotzaboss/Code/C/minimalist-shell/cmake-build-debug/CMakeFiles/northern_tech.dir

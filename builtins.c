@@ -12,15 +12,15 @@
 
 int pwd(char* outbuffer)
 {
-	return getcwd(outbuffer, 5000) ? 1 : 0;
+	return getcwd(outbuffer, 60) ? 1 : 0;
 }
 
-int cd(const char* path)
+int cd(char* path)
 {
 	return chdir(path);
 }
 
-int ls(const char* path)
+int ls(char* path)
 {
 	DIR* dir_stream = opendir(path);
 	struct dirent* dir;
@@ -34,14 +34,14 @@ int ls(const char* path)
 	return 1;
 }
 
-const char* const builtin_names[] = {
-	"pwd",
-	"cd",
-	"ls"
-};
+void setup() {
+//builtin_names[0] = "pwd";
+//	builtin_names[1] = "cd";
+//	builtin_names[2] = "ls";
+//builtins_func[0] = &pwd;
+//	builtins_func[1] = &cd;
+//	builtins_func[2] = &ls;
+}
 
-int (* builtins_func[])(const char*) = {
-	&pwd,
-	&cd,
-	&ls
-};
+
+
