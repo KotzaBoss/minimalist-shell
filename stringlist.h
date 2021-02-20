@@ -16,7 +16,7 @@ void stringlist_push_back(StringList sl, const char* str);
 void stinglist_delete(StringList sl);
 const char* stringlist_at(StringList sl, int idx);
 void stringlist_set_at(StringList sl, int idx, const char* val);
-const char** stringlist_release(StringList sl);
+char* const* stringlist_release(StringList sl);
 char* stringlist_join(StringList sl, char* outbuff, int size, const char* btw);
 int stringlist_size(StringList sl);
 

@@ -65,7 +65,7 @@ int stringlist_size(StringList sl) {
 	return sl->size;
 }
 
-const char** stringlist_release(StringList sl) {
+char* const* stringlist_release(StringList sl) {
 	return sl->array;
 }
 
