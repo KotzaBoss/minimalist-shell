@@ -10,9 +10,10 @@
 #include <stdio.h>
 #include "builtins.h"
 
-int pwd(char* outbuffer)
+
+char* pwd(char* outbuffer, int size)
 {
-	return getcwd(outbuffer, 60) ? 1 : 0;
+	return getcwd(outbuffer, size);
 }
 
 int cd(char* path)
@@ -34,8 +35,38 @@ int ls(char* path)
 	return 1;
 }
 
-void setup() {
-//builtin_names[0] = "pwd";
+const char* builtins[TOTAL_BUILTINS] = {
+	"pwd",
+	"cd",
+	"ls"
+};
+
+int is_builtin(const char* cmd) {
+	for(int i = 0; i < TOTAL_BUILTINS; ++i) {
+		if(!strcmp(builtins[i], cmd)) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+//int get_cmd(const char* name){
+//	void* f = &ls;
+//
+//	char* s = ".";
+//	(int(*)(char*)f)(s);
+//	for(int i = 0; i < TOTAL_BUILTINS; ++i) {
+//		if(is_builtin(name) >= 0){
+//
+//			return builtin_funcs[i];
+//		}
+//	}
+//	return NULL;
+//}
+
+void setup()
+{
+//	builtin_names[0] = "pwd";
 //	builtin_names[1] = "cd";
 //	builtin_names[2] = "ls";
 //builtins_func[0] = &pwd;

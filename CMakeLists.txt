@@ -7,4 +7,7 @@ add_executable(
 		minimalist_shell
 		main.c
 		builtins.c
+		interpret.c
+		stringlist.c
+		stringlist.h
 )

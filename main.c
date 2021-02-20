@@ -4,85 +4,32 @@
 #include <dirent.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <pwd.h>
 #include "builtins.h"
+#include "interpret.h"
 
 #define PROMPT ">>> "
-#define BUFFER_SIZE 64
-#define PIPE_TOKEN "|\n"
-#define TOKENS " \n"
+#define IN_BUFF_SIZE 64
+#define CWD_BUFF_SIZE 100
 
-char inbuffer[BUFFER_SIZE];
+#define CMD_WIDTH 15
+
+char inbuffer[IN_BUFF_SIZE];
+char cwd[CWD_BUFF_SIZE];
 
 char* input(const char* prompt)
 {
 	printf("%s", prompt);
-	return fgets(inbuffer, BUFFER_SIZE, stdin);
+	return fgets(inbuffer, IN_BUFF_SIZE, stdin);
 }
 
-int run(int (* cmd)(char*), char* args)
-{
-	return cmd(args);
-}
-
-/**
- * @brief Struct containing pointer to the command string and the first argument.
- */
-typedef struct PipeSegmentMeta {
-	char* cmd;
-	char* first_arg;
-} PipeSegmentMeta;
-
-/**
- * @brief Struct containing an array of pipe segment and size metadata.
- */
-typedef struct PipeSegments {
-	PipeSegmentMeta* metas;
-	int size;
-} PipeSegments ;
-
-/**
- * @brief Tokenize individual pipe segment string.
- */
-PipeSegmentMeta inner_tokenize(char* start) {
-	PipeSegmentMeta cmd_meta = {
-		strtok(start, TOKENS),
-		strtok(NULL, TOKENS)
-	};
-	return cmd_meta;
-}
-
-/**
- * @brief Generate new PipeSegments struct from line read from stdin.
- */
-PipeSegments* new_pipe_segments(char* line, int max_segments) {
-	PipeSegments* psegs = malloc(sizeof(PipeSegments));
-	psegs->metas = malloc(max_segments * sizeof(PipeSegmentMeta));
-	psegs->size = 0;
-
-	char* segments[max_segments];  // TODO: make vector
-	for(char* token = strtok(line, PIPE_TOKEN);
-	    token;
-	    token = strtok(NULL, PIPE_TOKEN),
-	    ++psegs->size)
-	{
-		segments[psegs->size] = token;
-	}
-
-	for(int i = 0; i < psegs->size; ++i) {
-		psegs->metas[i] = inner_tokenize(segments[i]);
-	}
-
-	return psegs;
-}
-
-void free_pipe_segments(PipeSegments* ps) {
-	free(ps->metas);
-	free(ps);
-}
+//int run(funcsig cmd, char* args)
+//{
+//	return cmd(args);
+//}
 
 int main()
 {
-	setup();
 	while (true) {
 		char* ret = input(PROMPT);
 		if (!ret) {
@@ -95,16 +42,46 @@ int main()
 			break;
 		}
 
-		PipeSegments* pipe_segs = new_pipe_segments(inbuffer, 10);
+		struct PipeSegments* pipe_segs = new_pipe_segments(inbuffer, 10);
 
-		for(int i = 0; i < pipe_segs->size; ++i){
-			printf("%s %s\n", pipe_segs->metas[i].cmd, pipe_segs->metas[i].first_arg);
+		for(int i = 0; i < stringlist_size(pipe_segs->metas->args); ++i) {
+			printf("%s\n", stringlist_at(pipe_segs->metas->args, i));
 		}
 
-		char b[10000];
+		char* cmd;
+		StringList args;
+		for(int i = 0; i < pipe_segs->size; ++i){
+			cmd = pipe_segs->metas[i].cmd;
+			args = pipe_segs->metas[i].args;
+
+			if (!strcmp(cmd, "ls")) {
+				char joined_args[10] = "\0";
+				if(!stringlist_size(args))
+					joined_args[0] = '.';
+				else
+					stringlist_join(args, joined_args, 10, " ");
+				fprintf(stderr, "%-10s ... %s\n", "ls", ls(joined_args) ? "ERROR" : "ok");
+			}
+			else if (!strcmp(cmd, "cd")) {
+				if(!args) {
+					if(!(args = getenv("HOME"))){
+						args = getpwuid(getuid())->pw_dir;
+					}
+				}
+				fprintf(stderr, "%-10s ... %s\n", "cd", cd(args) ? "ERROR" : "ok");
+			}
+			else if (!strcmp(cmd, "pwd")){
+				fprintf(stderr, "%-10s ... %s %s\n", "pwd", pwd(cwd, CWD_BUFF_SIZE) ? "ok" : "ERROR", cwd);
+			}
+			else {
+				int pid = fork();
+				if(!pid) {  // in child
+				}
+
+			}
+		}
+
 		free_pipe_segments(pipe_segs);
-		printf("%d\n", run(pwd, b));
-		printf("%s\n", b);
 		break;
 	}
 	return 0;
