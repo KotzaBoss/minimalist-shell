@@ -10,26 +10,21 @@
 #define PIPE_TOKENS "|\n"
 #define CMD_TOKENS " \n"
 
+typedef struct PipeSegmentMeta* PipeSegmentMeta;
+typedef struct PipeSegments* PipeSegments;
+typedef struct CMD* CMD;
 
-/**
- * @brief Struct containing pointer to the command string and the first argument.
- */
-typedef struct PipeSegmentMeta
-{
-	char* cmd;
-	StringList args;  // TODO convert to array of args ["-la", "."
-} PipeSegmentMeta;
+PipeSegmentMeta new_pipesegmentmeta();
+void free_pipesegmentmeta(PipeSegmentMeta);
 
-/**
- * @brief Struct containing an array of pipe segment and size metadata.
- */
-typedef struct PipeSegments
-{
-	PipeSegmentMeta* metas;
-	int size;
-} PipeSegments;
+PipeSegments new_pipe_segments(char* line, int max_segments);
+int pipesegments_size(PipeSegments ps);
+PipeSegmentMeta* pipesegments_metas(PipeSegments ps);
+void free_pipe_segments(PipeSegments ps);
 
-PipeSegmentMeta inner_tokenize(char* start);
-PipeSegments* new_pipe_segments(char* line, int max_segments);
-void free_pipe_segments(PipeSegments* ps);
+CMD cmd_new(PipeSegmentMeta psm);
+char** cmd_release(CMD);
+void cmd_free(CMD cmd);
+
+void prepare_cmd(PipeSegmentMeta psm, char** dest);
 #endif //INTERPRET_H

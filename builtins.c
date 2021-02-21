@@ -25,14 +25,16 @@ int ls(char* path)
 {
 	DIR* dir_stream = opendir(path);
 	struct dirent* dir;
+	int len = 0;
 	if (dir_stream) {
 		while ((dir = readdir(dir_stream))) {
 			printf("%s\n", dir->d_name);
+			len += strlen(dir->d_name);
 		}
 		closedir(dir_stream);
-		return 0;
+		return len;
 	}
-	return 1;
+	return -1;
 }
 
 const char* builtins[TOTAL_BUILTINS] = {

@@ -6,51 +6,103 @@
 #include <unistd.h>
 #include <pwd.h>
 #include <sys/wait.h>
+#include <assert.h>
 #include "builtins.h"
 #include "interpret.h"
 
 #define PROMPT ">>> "
 #define IN_BUFF_SIZE 64
-#define CWD_BUFF_SIZE 100
-#define ARG_BUFF_SIZE 100
 
-#define CMD_WIDTH 15
-
-char inbuffer[IN_BUFF_SIZE];
-
-char cwd[CWD_BUFF_SIZE];
+char uinbuffer[IN_BUFF_SIZE];
 
 char* input(const char* prompt)
 {
 	printf("%s", prompt);
-	return fgets(inbuffer, IN_BUFF_SIZE, stdin);
+	return fgets(uinbuffer, IN_BUFF_SIZE, stdin);
 }
 
-//int run(funcsig cmd, char* args)
-//{
-//	return cmd(args);
-//}
+/**
+ * @brief Spawn child connect pipes to STDIN or STDOUT and execute cmd.
+ * @param infd Input file descriptor.
+ * @param outfd Output file descriptor.
+ * @return
+ */
+int new_child(int infd, int outfd, CMD cmd)
+{
+	int cpid = fork();
+	if (!cpid) {
+		if (infd != STDIN_FILENO) {  // reroute input of pipe
+			dup2(infd, STDIN_FILENO);
+			close(infd);
+		}
+		if (outfd != STDOUT_FILENO) {  // rerout output of pipe
+			dup2(outfd, STDOUT_FILENO);
+			close(outfd);
+		}
+		return execvp(cmd_release(cmd)[0], cmd_release(cmd));
+	}
+	return cpid;
+}
 
 int main()
 {
 	while (true) {
-		char* ret = input(PROMPT);
-		if (!ret) {
+		fflush(stdin);
+		char* uin = input(PROMPT);
+		if (!uin) {
+			perror("`input` returned NULL");
+			return 1;
+		}
+		if (uinbuffer[strlen(uinbuffer) - 1] != '\n') {
+			fprintf(stderr, "overread");
+			return 1;
+		}
+
+		PipeSegments pipe_segs = new_pipe_segments(uinbuffer, 10);
+
+		int fd[2];
+		int infd = STDIN_FILENO;
+		char* cmd;
+		StringList args;
+		CMD arg_list;
+		for (int i = 0; i < pipesegments_size(pipe_segs) - 1;
+		     ++i) {  // last cmd must be outside for
+			arg_list = cmd_new(pipesegments_metas(pipe_segs)[i]);
+
+			pipe(fd);
+			int cpid = new_child(infd, fd[1], arg_list);
+			waitpid(cpid, NULL, 0);
+			close(fd[1]);
+			infd = fd[0];
+
+			cmd_free(arg_list);
+		}
+
+		if (infd != STDIN_FILENO) {
+			dup2(infd, STDIN_FILENO);
+			close(infd);
+		}
+		arg_list = cmd_new(pipesegments_metas(pipe_segs)[pipesegments_size(pipe_segs) - 1]);
+		int cpid = new_child(infd, fd[1], arg_list);
+		waitpid(cpid, NULL, 0);
+//		execvp(cmd_release(arg_list)[0], cmd_release(arg_list));
+		cmd_free(arg_list);
+	}
+
+	/*
+	while (true) {
+		char* uin = input(PROMPT);
+
+		if (!uin) {
 			perror("`input` returned NULL");
 			break;
 		}
-
-		if (inbuffer[strlen(inbuffer) - 1] != '\n') {
+		if (uinbuffer[strlen(uinbuffer) - 1] != '\n') {
 			fprintf(stderr, "overread");
 			break;
 		}
 
-		struct PipeSegments* pipe_segs = new_pipe_segments(inbuffer, 10);
-
-//		for (int i = 0; i < stringlist_size(pipe_segs->metas->args); ++i) {
-//			printf("%s\n", stringlist_at(pipe_segs->metas->args, i));
-//		}
-//		printf("%s\n", pipe_segs->metas->cmd);
+		struct PipeSegments* pipe_segs = new_pipe_segments(uinbuffer, 10);
 
 		char* cmd;
 		StringList args;
@@ -60,24 +112,24 @@ int main()
 
 			char joined_args[ARG_BUFF_SIZE] = "\0";
 			if (!strcmp(cmd, "ls")) {
-				if (!stringlist_size(args)) {
+				if (!stringlist_size(args))
 					joined_args[0] = '.';
-				}
-				else {
+				else
 					stringlist_join(args, joined_args, ARG_BUFF_SIZE, " ");
-				}
 
-				if (ls(joined_args)) {
+				int nchars = ls(joined_args);
+				if (nchars == -1)
 					perror("ls");
+				else {
+					char buff[nchars]
+					write(STDIN_FILENO,)
 				}
 			}
 			else if (!strcmp(cmd, "cd")) {
 				char* cd_args;
-
 				if (!stringlist_size(args)) {
-					if (!(cd_args = getenv("HOME"))) {
+					if (!(cd_args = getenv("HOME")))
 						cd_args = getpwuid(getuid())->pw_dir;
-					}
 				}
 				else {
 					stringlist_join(args, joined_args, ARG_BUFF_SIZE, " ");
@@ -91,23 +143,19 @@ int main()
 				if (!pwd(cmd, CWD_BUFF_SIZE))
 					perror("pwd");
 			}
-			else {
-//				printf("before fork\n");
-				int arg_list_len = 1 + stringlist_size(args) + 1;
+			else {  // Assume cmd is binary
+				int arg_list_len = 1 + stringlist_size(args) + 1;  // cmd + args + NULL
 				char* arg_list[arg_list_len];
-				arg_list[0] = cmd;
-				for (int i = 1; i < arg_list_len - 1; ++i) {
-					arg_list[i] = stringlist_at(args, i-1);
-				}
-				arg_list[arg_list_len-1] = NULL;  // exec requires last element to be NULL
 
-//				for(int i = 0; i < arg_list_len; ++i)
-//					printf("%s\n", arg_list[i] ? arg_list[i] : "null");
+				arg_list[0] = cmd;
+				for (int i = 1; i < arg_list_len - 1; ++i)
+					arg_list[i] = stringlist_at(args, i - 1);
+				arg_list[arg_list_len - 1] = NULL;  // {"cmd", "arg1", "args2", ..., NULL}
+
 				int pid = fork();
 				if (pid == 0) {  // in child
-					int i = execvp(cmd, arg_list);
-//					printf("%d\n", i);
-					_exit(0);
+					int exec_code = execvp(cmd, arg_list);
+					_exit(exec_code);
 				}
 				else {
 					printf("parent waiting\n");
@@ -119,5 +167,5 @@ int main()
 
 		free_pipe_segments(pipe_segs);
 	}
-	return 0;
+	return 0;*/
 }
