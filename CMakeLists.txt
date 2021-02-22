@@ -10,4 +10,6 @@ add_executable(
 		interpret.c
 		stringlist.c
 		stringlist.h
+		run.c
+		run.h
 )

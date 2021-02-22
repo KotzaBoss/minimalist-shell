@@ -9,21 +9,30 @@
 #include <string.h>
 #include <stdio.h>
 #include "builtins.h"
+#include <pwd.h>
 
 
-char* pwd(char* outbuffer, int size)
+int builtin_pwd(char** args)
 {
-	return getcwd(outbuffer, size);
+	return getcwd(args[0], strtol(args[1], NULL, 10)) ? 1 : 0;
 }
 
-int cd(char* path)
+int builtin_cd(char** args)
 {
-	return chdir(path);
+	char* dir = args[1];
+	if(!dir){
+		dir = getenv("HOME");
+		if(!dir) {
+			dir = getpwuid(getuid())->pw_name;
+		}
+	}
+	fprintf(stderr, "%s\n", dir ? dir : "null");
+	return chdir(dir);
 }
 
-int ls(char* path)
+int builtin_ls(char** args)
 {
-	DIR* dir_stream = opendir(path);
+	DIR* dir_stream = opendir(args[0]);
 	struct dirent* dir;
 	int len = 0;
 	if (dir_stream) {
@@ -37,44 +46,27 @@ int ls(char* path)
 	return -1;
 }
 
-const char* builtins[TOTAL_BUILTINS] = {
+const char* names[] = {
 	"pwd",
 	"cd",
 	"ls"
 };
 
-int is_builtin(const char* cmd) {
-	for(int i = 0; i < TOTAL_BUILTINS; ++i) {
-		if(!strcmp(builtins[i], cmd)) {
-			return i;
+builtin func[] = {
+	&builtin_pwd,
+	&builtin_cd,
+	&builtin_ls
+};
+
+int total_builtins() {
+	return sizeof(names) / sizeof(char*);  // note to self: total bytes / elem type
+}
+
+builtin get_func(const char* name) {
+	for(int i = 0; i < total_builtins(); ++i) {
+		if(!strcmp(names[i], name)) {
+			return func[i];
 		}
 	}
-	return -1;
+	return NULL;
 }
-
-//int get_cmd(const char* name){
-//	void* f = &ls;
-//
-//	char* s = ".";
-//	(int(*)(char*)f)(s);
-//	for(int i = 0; i < TOTAL_BUILTINS; ++i) {
-//		if(is_builtin(name) >= 0){
-//
-//			return builtin_funcs[i];
-//		}
-//	}
-//	return NULL;
-//}
-
-void setup()
-{
-//	builtin_names[0] = "pwd";
-//	builtin_names[1] = "cd";
-//	builtin_names[2] = "ls";
-//builtins_func[0] = &pwd;
-//	builtins_func[1] = &cd;
-//	builtins_func[2] = &ls;
-}
-
-
-

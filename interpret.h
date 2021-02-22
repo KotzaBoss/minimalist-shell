@@ -10,21 +10,34 @@
 #define PIPE_TOKENS "|\n"
 #define CMD_TOKENS " \n"
 
+/**
+ * @brief Type containing pointer to the command string and StringList of arguments.
+ */
 typedef struct PipeSegmentMeta* PipeSegmentMeta;
+
+/**
+ * @brief Type containing an array of PipeSegmentMeta and its size.
+ */
 typedef struct PipeSegments* PipeSegments;
+
+/**
+ * @brief Type encapsulating an array of strings to be used with execvp
+ */
 typedef struct CMD* CMD;
 
-PipeSegmentMeta new_pipesegmentmeta();
-void free_pipesegmentmeta(PipeSegmentMeta);
+PipeSegmentMeta PipeSegmentMeta_new  ();
+void            PipeSegmentMeta_free (PipeSegmentMeta* psm);
 
-PipeSegments new_pipe_segments(char* line, int max_segments);
-int pipesegments_size(PipeSegments ps);
-PipeSegmentMeta* pipesegments_metas(PipeSegments ps);
-void free_pipe_segments(PipeSegments ps);
+PipeSegments     PipeSegments_new   (char* line, int max_segments);
+void             PipeSegments_free  (PipeSegments* ps);
+int              PipeSegments_size  (PipeSegments ps);
+PipeSegmentMeta* PipeSegments_metas (PipeSegments ps);
 
-CMD cmd_new(PipeSegmentMeta psm);
-char** cmd_release(CMD);
-void cmd_free(CMD cmd);
+CMD    CMD_new     (PipeSegmentMeta psm);
+void   CMD_free    (CMD* cmd);
+char** CMD_release (CMD cmd);
+const char* CMD_name (CMD cmd);
 
 void prepare_cmd(PipeSegmentMeta psm, char** dest);
+
 #endif //INTERPRET_H

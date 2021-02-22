@@ -5,19 +5,8 @@
 #ifndef BUILTINS_H
 #define BUILTINS_H
 
-#define TOTAL_BUILTINS 3
+typedef int (*builtin)(char**);
 
-//const char* builtin_names[TOTAL_BUILTINS];
-
-//int (* builtins_func[TOTAL_BUILTINS])(char*);
-
-char* pwd(char* outbuffer, int size);
-int cd(char* path);
-int ls(char* path);
-
-int is_builtin(const char* cmd);
-int get_cmd(const char* name);
-
-void setup();
+builtin get_func(const char* name);
 
 #endif //BUILTINS_H

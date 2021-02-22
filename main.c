@@ -9,6 +9,11 @@
 #include <assert.h>
 #include "builtins.h"
 #include "interpret.h"
+#include "run.h"
+
+#define GOTO_ERROR(str) \
+    perror(str); \
+    goto Error
 
 #define PROMPT ">>> "
 #define IN_BUFF_SIZE 64
@@ -21,151 +26,77 @@ char* input(const char* prompt)
 	return fgets(uinbuffer, IN_BUFF_SIZE, stdin);
 }
 
-/**
- * @brief Spawn child connect pipes to STDIN or STDOUT and execute cmd.
- * @param infd Input file descriptor.
- * @param outfd Output file descriptor.
- * @return
- */
-int new_child(int infd, int outfd, CMD cmd)
-{
-	int cpid = fork();
-	if (!cpid) {
-		if (infd != STDIN_FILENO) {  // reroute input of pipe
-			dup2(infd, STDIN_FILENO);
-			close(infd);
-		}
-		if (outfd != STDOUT_FILENO) {  // rerout output of pipe
-			dup2(outfd, STDOUT_FILENO);
-			close(outfd);
-		}
-		return execvp(cmd_release(cmd)[0], cmd_release(cmd));
-	}
-	return cpid;
-}
-
 int main()
 {
+	// Free on Error
+	PipeSegments pipe_segs = NULL;
+	CMD arg_list = NULL;
+
+	int fd[2];
+	int infd = STDIN_FILENO;
+	int outfd;
+	char* uin;
+	int cpid;
+	builtin bfunc;
 	while (true) {
-		fflush(stdin);
-		char* uin = input(PROMPT);
+		uin = input(PROMPT);
 		if (!uin) {
-			perror("`input` returned NULL");
-			return 1;
+			GOTO_ERROR("`input` returned NULL");
 		}
 		if (uinbuffer[strlen(uinbuffer) - 1] != '\n') {
-			fprintf(stderr, "overread");
-			return 1;
+			GOTO_ERROR("Overread");
 		}
 
-		PipeSegments pipe_segs = new_pipe_segments(uinbuffer, 10);
+		pipe_segs = PipeSegments_new(uinbuffer, 10);
 
-		int fd[2];
-		int infd = STDIN_FILENO;
-		char* cmd;
-		StringList args;
-		CMD arg_list;
-		for (int i = 0; i < pipesegments_size(pipe_segs) - 1;
-		     ++i) {  // last cmd must be outside for
-			arg_list = cmd_new(pipesegments_metas(pipe_segs)[i]);
+		for (int i = 0; i < PipeSegments_size(pipe_segs) - 1; ++i) { // last cmd must be outside for
+			arg_list = CMD_new(PipeSegments_metas(pipe_segs)[i]);
 
 			pipe(fd);
-			int cpid = new_child(infd, fd[1], arg_list);
+			outfd = fd[1];
+			if ((bfunc = get_func(CMD_name(arg_list)))) {
+				fprintf(stderr, "builtin");
+				cpid = run_builtin_in_fork(infd, outfd, bfunc, CMD_release(arg_list));
+			}
+			else {
+				fprintf(stderr, "foreign binary");
+				cpid = run_cmd_in_fork(infd, outfd, arg_list);
+			}
 			waitpid(cpid, NULL, 0);
-			close(fd[1]);
-			infd = fd[0];
+			close(outfd);
+			infd = fd[0];  // Pipe will be used in the next iteration
 
-			cmd_free(arg_list);
-		}
+			CMD_free(&arg_list);
+		}  // infd = pipe, outfd = stdout (from run_cmd_in_fork)
 
 		if (infd != STDIN_FILENO) {
 			dup2(infd, STDIN_FILENO);
 			close(infd);
 		}
-		arg_list = cmd_new(pipesegments_metas(pipe_segs)[pipesegments_size(pipe_segs) - 1]);
-		int cpid = new_child(infd, fd[1], arg_list);
+
+		// TODO fix crash of fgets
+		arg_list = CMD_new(PipeSegments_metas(pipe_segs)[PipeSegments_size(pipe_segs) - 1]);
+		if ((bfunc = get_func(CMD_name(arg_list)))) {
+			fprintf(stderr, "builtin\n");
+			cpid = run_builtin_in_fork(infd, outfd, bfunc, CMD_release(arg_list));
+		}
+		else {
+			fprintf(stderr, "foreign binary");
+			cpid = run_cmd_in_fork(infd, outfd, arg_list);
+		}
+//		int cpid = fork();
+//		if(!cpid) {
+//			execvp(CMD_release(arg_list)[0], CMD_release(arg_list));
+//		}
 		waitpid(cpid, NULL, 0);
-//		execvp(cmd_release(arg_list)[0], cmd_release(arg_list));
-		cmd_free(arg_list);
+		CMD_free(&arg_list);
+		PipeSegments_free(&pipe_segs);
 	}
 
-	/*
-	while (true) {
-		char* uin = input(PROMPT);
-
-		if (!uin) {
-			perror("`input` returned NULL");
-			break;
-		}
-		if (uinbuffer[strlen(uinbuffer) - 1] != '\n') {
-			fprintf(stderr, "overread");
-			break;
-		}
-
-		struct PipeSegments* pipe_segs = new_pipe_segments(uinbuffer, 10);
-
-		char* cmd;
-		StringList args;
-		for (int i = 0; i < pipe_segs->size; ++i) {
-			cmd = pipe_segs->metas[i].cmd;
-			args = pipe_segs->metas[i].args;
-
-			char joined_args[ARG_BUFF_SIZE] = "\0";
-			if (!strcmp(cmd, "ls")) {
-				if (!stringlist_size(args))
-					joined_args[0] = '.';
-				else
-					stringlist_join(args, joined_args, ARG_BUFF_SIZE, " ");
-
-				int nchars = ls(joined_args);
-				if (nchars == -1)
-					perror("ls");
-				else {
-					char buff[nchars]
-					write(STDIN_FILENO,)
-				}
-			}
-			else if (!strcmp(cmd, "cd")) {
-				char* cd_args;
-				if (!stringlist_size(args)) {
-					if (!(cd_args = getenv("HOME")))
-						cd_args = getpwuid(getuid())->pw_dir;
-				}
-				else {
-					stringlist_join(args, joined_args, ARG_BUFF_SIZE, " ");
-					cd_args = joined_args;
-				}
-
-				if (cd(cd_args))
-					perror("cd");
-			}
-			else if (!strcmp(cmd, "pwd")) {
-				if (!pwd(cmd, CWD_BUFF_SIZE))
-					perror("pwd");
-			}
-			else {  // Assume cmd is binary
-				int arg_list_len = 1 + stringlist_size(args) + 1;  // cmd + args + NULL
-				char* arg_list[arg_list_len];
-
-				arg_list[0] = cmd;
-				for (int i = 1; i < arg_list_len - 1; ++i)
-					arg_list[i] = stringlist_at(args, i - 1);
-				arg_list[arg_list_len - 1] = NULL;  // {"cmd", "arg1", "args2", ..., NULL}
-
-				int pid = fork();
-				if (pid == 0) {  // in child
-					int exec_code = execvp(cmd, arg_list);
-					_exit(exec_code);
-				}
-				else {
-					printf("parent waiting\n");
-					wait(NULL);
-					printf("child dead\n");
-				}
-			}
-		}
-
-		free_pipe_segments(pipe_segs);
-	}
-	return 0;*/
+Error:
+	if (pipe_segs)
+		PipeSegments_free(&pipe_segs);
+	if (arg_list)
+		CMD_free(&arg_list);  // TODO cmd->cmd not malloced???
+	return 1;
 }
