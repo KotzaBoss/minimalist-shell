@@ -92,6 +92,7 @@ void PipeSegments_free(PipeSegments* ps)
 
 PipeSegmentMeta* PipeSegments_metas(PipeSegments ps) { return ps->metas; }
 int PipeSegments_size(PipeSegments ps) { return ps->size; }
+PipeSegmentMeta PipeSegments_last(PipeSegments ps) { return ps->metas[ps->size - 1];}
 
 CMD CMD_new(PipeSegmentMeta psm)
 {

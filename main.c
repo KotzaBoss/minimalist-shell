@@ -34,16 +34,19 @@ int main()
 
 	int fd[2];
 	int infd = STDIN_FILENO;
-	int outfd;
+	int outfd = STDOUT_FILENO;
 	char* uin;
 	int cpid;
 	builtin bfunc;
+
 	while (true) {
 		uin = input(PROMPT);
 		if (!uin) {
+			fprintf(stderr, "from line 45");
 			GOTO_ERROR("`input` returned NULL");
 		}
 		if (uinbuffer[strlen(uinbuffer) - 1] != '\n') {
+			fprintf(stderr, "from line 49");
 			GOTO_ERROR("Overread");
 		}
 
@@ -69,13 +72,7 @@ int main()
 			CMD_free(&arg_list);
 		}  // infd = pipe, outfd = stdout (from run_cmd_in_fork)
 
-		if (infd != STDIN_FILENO) {
-			dup2(infd, STDIN_FILENO);
-			close(infd);
-		}
-
-		// TODO fix crash of fgets
-		arg_list = CMD_new(PipeSegments_metas(pipe_segs)[PipeSegments_size(pipe_segs) - 1]);
+		arg_list = CMD_new(PipeSegments_last(pipe_segs));
 		if ((bfunc = get_func(CMD_name(arg_list)))) {
 			fprintf(stderr, "builtin\n");
 			cpid = run_builtin_in_fork(infd, outfd, bfunc, CMD_release(arg_list));
@@ -84,11 +81,8 @@ int main()
 			fprintf(stderr, "foreign binary");
 			cpid = run_cmd_in_fork(infd, outfd, arg_list);
 		}
-//		int cpid = fork();
-//		if(!cpid) {
-//			execvp(CMD_release(arg_list)[0], CMD_release(arg_list));
-//		}
 		waitpid(cpid, NULL, 0);
+
 		CMD_free(&arg_list);
 		PipeSegments_free(&pipe_segs);
 	}

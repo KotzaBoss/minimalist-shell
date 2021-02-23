@@ -32,6 +32,7 @@ PipeSegments     PipeSegments_new   (char* line, int max_segments);
 void             PipeSegments_free  (PipeSegments* ps);
 int              PipeSegments_size  (PipeSegments ps);
 PipeSegmentMeta* PipeSegments_metas (PipeSegments ps);
+PipeSegmentMeta  PipeSegments_last  (PipeSegments ps);
 
 CMD    CMD_new     (PipeSegmentMeta psm);
 void   CMD_free    (CMD* cmd);

@@ -14,7 +14,12 @@
 
 int builtin_pwd(char** args)
 {
-	return getcwd(args[0], strtol(args[1], NULL, 10)) ? 1 : 0;
+	char buff[100] = "\0";
+	if(getcwd(buff, 100)) {
+		printf("%s\n", buff);
+		return 1;
+	}
+	return 0;
 }
 
 int builtin_cd(char** args)
@@ -32,7 +37,10 @@ int builtin_cd(char** args)
 
 int builtin_ls(char** args)
 {
-	DIR* dir_stream = opendir(args[0]);
+	if (!args[1]){
+		args[1] = ".";
+	}
+	DIR* dir_stream = opendir(args[1]);
 	struct dirent* dir;
 	int len = 0;
 	if (dir_stream) {
