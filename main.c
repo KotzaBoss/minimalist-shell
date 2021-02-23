@@ -92,7 +92,7 @@ int main()
 			cpid = run_cmd_in_fork(infd, outfd, arg_list);
 		}
 		if(PipeSegments_wait(pipe_segs)){
-		waitpid(cpid, NULL, 0);
+		wait`pid(cpid, NULL, 0);
 
 		}
 
