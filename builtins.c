@@ -12,7 +12,7 @@
 #include <pwd.h>
 
 
-int builtin_pwd(char** args)
+int builtin_pwd(char** args, int infd, int outfd)
 {
 	char buff[100] = "\0";
 	if(getcwd(buff, 100)) {
@@ -22,7 +22,9 @@ int builtin_pwd(char** args)
 	return 0;
 }
 
-int builtin_cd(char** args)
+
+// TODO: doesnt work with .. (and in general)
+int builtin_cd(char** args, int infd, int outfd)
 {
 	char* dir = args[1];
 	if(!dir){
@@ -31,27 +33,23 @@ int builtin_cd(char** args)
 			dir = getpwuid(getuid())->pw_name;
 		}
 	}
-	fprintf(stderr, "%s\n", dir ? dir : "null");
 	return chdir(dir);
 }
 
-int builtin_ls(char** args)
+int builtin_ls(char** args, int infd, int outfd)
 {
-	if (!args[1]){
-		args[1] = ".";
-	}
-	DIR* dir_stream = opendir(args[1]);
+	DIR* dir_stream = opendir(args[1] ? args[1] : ".");
 	struct dirent* dir;
-	int len = 0;
+	int len = -1;
 	if (dir_stream) {
+		len = 0;
 		while ((dir = readdir(dir_stream))) {
 			printf("%s\n", dir->d_name);
 			len += strlen(dir->d_name);
 		}
 		closedir(dir_stream);
-		return len;
 	}
-	return -1;
+	return len;
 }
 
 const char* names[] = {

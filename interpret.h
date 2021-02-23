@@ -9,6 +9,7 @@
 
 #define PIPE_TOKENS "|\n"
 #define CMD_TOKENS " \n"
+#define WAIT_CHAR '&'
 
 /**
  * @brief Type containing pointer to the command string and StringList of arguments.
@@ -33,6 +34,7 @@ void             PipeSegments_free  (PipeSegments* ps);
 int              PipeSegments_size  (PipeSegments ps);
 PipeSegmentMeta* PipeSegments_metas (PipeSegments ps);
 PipeSegmentMeta  PipeSegments_last  (PipeSegments ps);
+bool             PipeSegments_wait  (PipeSegments ps);
 
 CMD    CMD_new     (PipeSegmentMeta psm);
 void   CMD_free    (CMD* cmd);

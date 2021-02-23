@@ -18,6 +18,7 @@ struct PipeSegments
 {
 	PipeSegmentMeta* metas;
 	int size;
+	bool wait;
 };
 
 struct CMD
@@ -63,6 +64,18 @@ PipeSegments PipeSegments_new(char* line, int max_segments)
 	PipeSegments psegs = malloc(sizeof(struct PipeSegments));
 	psegs->metas = malloc(max_segments * sizeof(struct PipeSegmentMeta));
 	psegs->size = 0;
+	psegs->wait = false;
+
+	char* wait_chr = strchr(line, WAIT_CHAR);
+	if (wait_chr) {
+		if ((wait_chr[1] != '\0') && (wait_chr[1] != '\n')) {  // If not at the end
+			PipeSegments_free(psegs);
+			return NULL;
+		}
+		else {
+			psegs->wait = true;
+		}
+	}
 
 	char* segments[max_segments];  // TODO: make vector
 	for (char* token = strtok(line, PIPE_TOKENS);
@@ -90,9 +103,14 @@ void PipeSegments_free(PipeSegments* ps)
 
 }
 
-PipeSegmentMeta* PipeSegments_metas(PipeSegments ps) { return ps->metas; }
-int PipeSegments_size(PipeSegments ps) { return ps->size; }
-PipeSegmentMeta PipeSegments_last(PipeSegments ps) { return ps->metas[ps->size - 1];}
+PipeSegmentMeta* PipeSegments_metas(PipeSegments ps)
+{ return ps->metas; }
+int PipeSegments_size(PipeSegments ps)
+{ return ps->size; }
+PipeSegmentMeta PipeSegments_last(PipeSegments ps)
+{ return ps->metas[ps->size - 1]; }
+bool PipeSegments_wait(PipeSegments ps)
+{ return ps->wait; }
 
 CMD CMD_new(PipeSegmentMeta psm)
 {
@@ -118,6 +136,8 @@ void CMD_free(CMD* cmd)
 	*cmd = NULL;
 }
 
-char** CMD_release(CMD cmd) { return cmd->cmd; }
+char** CMD_release(CMD cmd)
+{ return cmd->cmd; }
 
-const char* CMD_name(CMD cmd) { return cmd->cmd[0];}
+const char* CMD_name(CMD cmd)
+{ return cmd->cmd[0]; }
