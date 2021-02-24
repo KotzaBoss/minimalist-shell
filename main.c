@@ -10,16 +10,7 @@
 #include "builtins.h"
 #include "interpret.h"
 #include "run.h"
-
-void cleanup(PipeSegments* ps, CMD* cmd)
-{
-	PipeSegments_free(ps);
-	CMD_free(cmd);
-}
-
-#define GOTO_AFTER_CLEANUP(to, ps, cmd) \
-    cleanup(ps, cmd); \
-    goto to;
+#include <wordexp.h>
 
 #define GOTO_ERROR(str) \
     fprintf(stderr, "%s:%d: ", __FILE__, __LINE__); \
@@ -27,7 +18,7 @@ void cleanup(PipeSegments* ps, CMD* cmd)
     goto Error
 
 #define PROMPT ">>> "
-#define IN_BUFF_SIZE 64
+#define IN_BUFF_SIZE 1024
 
 char uinbuffer[IN_BUFF_SIZE];
 
@@ -40,6 +31,61 @@ void sigint_handler(int x)
 {
 	fprintf(stderr, "Exiting...\n");
 	exit(EXIT_SUCCESS);
+}
+
+/**
+ * @brief Overwrite buffer adding escape backslash for the esc_chr characters
+ */
+static
+void escape(char* buffer, int max_size, const char* esc_chr)
+{
+	char* tmp = malloc(max_size * sizeof(char));
+	for (int i = 0, buff_i = 0; i < max_size; ++i, ++buff_i) {
+		for (int j = 0; j < strlen(esc_chr); ++j) {
+			if (esc_chr[j] == buffer[buff_i]) {
+				tmp[i++] = '\\';
+			}
+			tmp[i] = buffer[buff_i];
+		}
+	}
+	for (int i = 0; i < max_size; ++i) {
+		buffer[i] = tmp[i];
+	}
+	free(tmp);
+}
+
+/**
+ * @brief Shell like expansion of buffer which is *overwritten*.
+ * If resulting string size is greater that buffer size return NULL else
+ * return the pointer to the buffer.
+ * @param buffer Buffer scanned and overwritten.
+ */
+char* expand_buffer(char* buffer, int max_size)
+{
+	buffer[strcspn(buffer, "\n")] = '\0';  // wordexp gets confused with "\n"
+	escape(buffer, max_size, "|");
+
+	wordexp_t w;
+	wordexp(uinbuffer, &w, 0);
+	size_t expanded_length = 0;
+	for (int i = 0; i < w.we_wordc; ++i) {
+		expanded_length += strlen(w.we_wordv[i]) + 1;  // + space
+	}
+	++expanded_length; // NULL termination
+	if (expanded_length > max_size) {
+		return NULL;
+	}
+
+	int buff_i = 0;
+	for (int w_str = 0; w_str < w.we_wordc; ++w_str) {
+		for (int w_str_i = 0; w_str_i < strlen(w.we_wordv[w_str]); ++w_str_i, ++buff_i) {
+			buffer[buff_i] = w.we_wordv[w_str][w_str_i];
+		}
+		buffer[buff_i++] = ' ';
+	}
+
+	wordfree(&w);
+	return buffer;
 }
 
 int main()
@@ -68,11 +114,14 @@ int main()
 			GOTO_ERROR("Overread");
 		}
 
-		if (!strcmp(uin, "\n")) {
+		if (!strcmp(uin, "\n")) {  // Only enter pressed
 			continue;
 		}
 		if (!strcmp(uin, "exit")) {
 			break;
+		}
+		if (!expand_buffer(uin, IN_BUFF_SIZE)) {
+			continue;
 		}
 
 		infd = STDIN_FILENO;
