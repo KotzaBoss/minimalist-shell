@@ -14,6 +14,6 @@
  * @param outfd Output file descriptor.
  */
 int run_cmd_in_fork(int infd, int outfd, CMD cmd);
-int run_builtin_in_fork(int infd, int outfd, builtin func, char** args);
+int run_builtin(int infd, int outfd, builtin func, char** args);
 
 #endif //RUN_H

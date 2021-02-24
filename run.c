@@ -26,7 +26,7 @@ int run_cmd_in_fork(int infd, int outfd, CMD cmd)
 	return cpid;
 }
 
-int run_builtin_in_fork(int infd, int outfd, builtin func, char** args)
+int run_builtin(int infd, int outfd, builtin func, char** args)
 {
 	if (infd != STDIN_FILENO) {  // reroute input of pipe
 		dup2(infd, STDIN_FILENO);
