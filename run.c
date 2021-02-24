@@ -11,7 +11,6 @@
 
 int run_cmd_in_fork(int infd, int outfd, CMD cmd)
 {
-	fprintf(stderr, "in cmd fork%d %d\n", infd, outfd);
 	int cpid = fork();
 	if (!cpid) {
 		if (infd != STDIN_FILENO) {  // reroute input of pipe
@@ -22,7 +21,6 @@ int run_cmd_in_fork(int infd, int outfd, CMD cmd)
 			dup2(outfd, STDOUT_FILENO);
 			close(outfd);
 		}
-		fprintf(stderr, "in cmd fork%d %d\n", infd, outfd);
 		return execvp(CMD_release(cmd)[0], CMD_release(cmd));
 	}
 	return cpid;

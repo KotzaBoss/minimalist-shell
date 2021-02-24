@@ -26,7 +26,8 @@ char* input(const char* prompt)
 	return fgets(uinbuffer, IN_BUFF_SIZE, stdin);
 }
 
-void sigint_handler(int x) {
+void sigint_handler(int x)
+{
 	fprintf(stderr, "Exiting...\n");
 	exit(EXIT_SUCCESS);
 }
@@ -37,11 +38,11 @@ int main()
 
 	// Free on Error
 	PipeSegments pipe_segs = NULL;
-	CMD arg_list = NULL;
+	CMD cmd = NULL;
 
 	int fd[2];
-	int infd = STDIN_FILENO;
-	int outfd = STDOUT_FILENO;
+	int infd;
+	int outfd;
 	char* uin;
 	int cpid;
 	builtin bfunc;
@@ -57,53 +58,60 @@ int main()
 			GOTO_ERROR("Overread");
 		}
 
-		pipe_segs = PipeSegments_new(uinbuffer, 10);
+		if (!strcmp(uin, "\n")) {
+			continue;
+		}
+		if (!strcmp(uin, "exit")) {
+			break;
+		}
 
+		infd = STDIN_FILENO;
+		outfd = STDOUT_FILENO;
+		pipe_segs = PipeSegments_new(uinbuffer, 10);
 		for (int i = 0; i < PipeSegments_size(pipe_segs) - 1; ++i) { // last cmd must be outside for
-			arg_list = CMD_new(PipeSegments_metas(pipe_segs)[i]);
+			cmd = CMD_new(PipeSegments_metas(pipe_segs)[i]);
 
 			pipe(fd);
 			outfd = fd[1];
-			fprintf(stderr, "for %d %d %d-%d\n", infd, outfd, fd[0], fd[1]);
-			if ((bfunc = get_func(CMD_name(arg_list)))) {
-				fprintf(stderr, "builtin %s\n", CMD_name(arg_list));
-				cpid = run_builtin_in_fork(infd, outfd, bfunc, CMD_release(arg_list));
+			if ((bfunc = get_func(CMD_name(cmd)))) {
+				cpid = run_builtin_in_fork(infd, outfd, bfunc, CMD_release(cmd));
 			}
 			else {
-				fprintf(stderr, "foreign binary IN FOR\n");
-				cpid = run_cmd_in_fork(infd, outfd, arg_list);
+				cpid = run_cmd_in_fork(infd, outfd, cmd);
 			}
-			if(PipeSegments_wait(pipe_segs)) {
+
+			if (PipeSegments_wait(pipe_segs)) {
 				waitpid(cpid, NULL, 0);
 			}
+
 			close(outfd);
 			infd = fd[0];  // Pipe will be used in the next iteration
 
-			CMD_free(&arg_list);
+			CMD_free(&cmd);
 		}  // infd = pipe, outfd = stdout (from run_cmd_in_fork)
 
-		arg_list = CMD_new(PipeSegments_last(pipe_segs));
-		if ((bfunc = get_func(CMD_name(arg_list)))) {
-			fprintf(stderr, "builtin %s\n", CMD_name(arg_list));
-			run_builtin_in_fork(infd, outfd, bfunc, CMD_release(arg_list));
+		// Code repetition but works...
+		cmd = CMD_new(PipeSegments_last(pipe_segs));
+		if ((bfunc = get_func(CMD_name(cmd)))) {
+			run_builtin_in_fork(infd, outfd, bfunc, CMD_release(cmd));
 		}
 		else {
-			fprintf(stderr, "foreign binary OUT OF FOR\n");
-			cpid = run_cmd_in_fork(infd, outfd, arg_list);
-		}
-		if(PipeSegments_wait(pipe_segs)){
-		wait`pid(cpid, NULL, 0);
-
+			cpid = run_cmd_in_fork(infd, outfd, cmd);
 		}
 
-		CMD_free(&arg_list);
+		if (PipeSegments_wait(pipe_segs)) {
+			fprintf(stderr, "waiting\n");
+			waitpid(cpid, NULL, 0);
+		}
+
+		CMD_free(&cmd);
 		PipeSegments_free(&pipe_segs);
 	}
 
 Error:
 	if (pipe_segs)
 		PipeSegments_free(&pipe_segs);
-	if (arg_list)
-		CMD_free(&arg_list);  // TODO cmd->cmd not malloced???
+	if (cmd)
+		CMD_free(&cmd);  // TODO cmd->cmd not malloced???
 	return 1;
 }

@@ -64,16 +64,17 @@ PipeSegments PipeSegments_new(char* line, int max_segments)
 	PipeSegments psegs = malloc(sizeof(struct PipeSegments));
 	psegs->metas = malloc(max_segments * sizeof(struct PipeSegmentMeta));
 	psegs->size = 0;
-	psegs->wait = false;
+	psegs->wait = true;
 
 	char* wait_chr = strchr(line, WAIT_CHAR);
 	if (wait_chr) {
 		if ((wait_chr[1] != '\0') && (wait_chr[1] != '\n')) {  // If not at the end
-			PipeSegments_free(psegs);
+			PipeSegments_free(&psegs);
 			return NULL;
 		}
 		else {
-			psegs->wait = true;
+			*wait_chr = '\0';
+			psegs->wait = false;
 		}
 	}
 
@@ -108,7 +109,7 @@ PipeSegmentMeta* PipeSegments_metas(PipeSegments ps)
 int PipeSegments_size(PipeSegments ps)
 { return ps->size; }
 PipeSegmentMeta PipeSegments_last(PipeSegments ps)
-{ return ps->metas[ps->size - 1]; }
+{ return ps->size > 0 ? ps->metas[ps->size - 1] : NULL; }
 bool PipeSegments_wait(PipeSegments ps)
 { return ps->wait; }
 
