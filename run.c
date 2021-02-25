@@ -1,8 +1,10 @@
 #include <unistd.h>
 #include <stdlib.h>
+#include <wait.h>
 #include "interpret.h"
 #include "builtins.h"
 #include "run.h"
+
 
 int fork_exec_binary(int infd, int outfd, CMD cmd)
 {
@@ -41,4 +43,16 @@ int fork_call_builtin(int infd, int outfd, builtin func, CMD cmd)
 	}
 	func(CMD_release(cmd));
 	return cpid;
+}
+
+
+int wait_set_errno(int id)
+{
+	int exec_code, cmd_code = 0;
+	waitpid(id, &exec_code, 0);
+	if(WIFEXITED(exec_code)) {
+		errno = cmd_code = WEXITSTATUS(exec_code);
+	}
+	return cmd_code;
+
 }

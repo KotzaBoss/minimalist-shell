@@ -2,9 +2,10 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
+#include <errno.h>
 #include "interpret.h"
 #include "stringlist.h"
-
 
 struct PipeSegmentMeta
 {
@@ -52,6 +53,12 @@ static
 void escape(char* buffer, int max_size, const char* esc_chr)
 {
 	char* tmp = calloc(sizeof(char), max_size);
+	char* err_pos[100] = {NULL};
+	char* err = buffer;
+	for (int i = 0; i < 100 && (err = strstr(err, "$?")); err_pos[i++] = err) {
+		err[0] = err[1] = ' ';
+	}
+
 	for (int i = 0, buff_i = 0; i < max_size; ++i, ++buff_i) {
 		for (int j = 0; j < strlen(esc_chr); ++j) {
 			if (esc_chr[j] == buffer[buff_i]) {
@@ -59,6 +66,13 @@ void escape(char* buffer, int max_size, const char* esc_chr)
 			}
 			tmp[i] = buffer[buff_i];
 		}
+		for (int e = 0; e < 100; ++e) {
+			if (&buffer[buff_i] == err_pos[e]) {
+				i += sprintf(&tmp[i], "%d", errno);
+				break;
+			}
+		}
+		tmp[i] = buffer[buff_i];
 	}
 	for (int i = 0; i < max_size; ++i) {
 		buffer[i] = tmp[i];

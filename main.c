@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <wordexp.h>
 #include <sys/wait.h>
+#include <errno.h>
 
 #include "builtins.h"
 #include "interpret.h"
@@ -33,7 +34,7 @@ char uinbuffer[IN_BUFF_SIZE];
 static
 char* input(const char* prompt)
 {
-	printf("%s ", PROMPT);
+	printf("%s ", prompt);
 	char* uin = fgets(uinbuffer, IN_BUFF_SIZE, stdin);
 	for (size_t i = strlen(uin) - 1;
 	     i >= 0 && (uin[i] == '\n' || uin[i] == ' ');
@@ -43,15 +44,8 @@ char* input(const char* prompt)
 	return uin;
 }
 
-void sigint_handler(int x)
-{
-	fprintf(stderr, "Exiting...\n");
-	exit(EXIT_SUCCESS);
-}
-
 int main()
 {
-	signal(SIGINT, sigint_handler);
 	int fd[2], infd, outfd, pid, cpid;
 	char* uin;
 	builtin bfunc;
@@ -79,6 +73,7 @@ int main()
 			continue;
 		}
 
+		pid = getpid();
 		pipe_segs = PipeSegments_new(uinbuffer, 10);
 		if (!PipeSegments_wait(pipe_segs)) {  // & at end of phrase
 			pid = fork();
@@ -95,7 +90,6 @@ int main()
 
 		infd = STDIN_FILENO;
 		outfd = STDOUT_FILENO;
-		pid = getpid();
 		for (int i = 0; i < PipeSegments_size(pipe_segs) - 1; ++i) { // last cmd must be outside for
 			cmd = CMD_new(PipeSegments_metas(pipe_segs)[i]);
 
@@ -112,12 +106,13 @@ int main()
 					goto WhileTop;
 				}
 			}
-			waitpid(cpid, NULL, 0);  // TODO: get exit code
-			close(outfd);
+			wait_set_errno(cpid);
+
+			close(outfd);  // 1000 iq close
 			infd = fd[0];  // write-to pipe will be used in the next iteration
 
 			CMD_free(&cmd);
-		}  // infd = pipe, outfd = stdout (from run_cmd_in_fork)
+		}  // infd = pipe, outfd = stdout (from fork_exec_binary)
 
 		cmd = CMD_new(PipeSegments_last(pipe_segs));  // Code repetition but it works...
 		if ((bfunc = get_func(CMD_name(cmd)))) {
@@ -131,13 +126,14 @@ int main()
 				goto WhileTop;
 			}
 		}
-		waitpid(cpid, NULL, 0);
+		wait_set_errno(cpid);
 
 		cleanup(&pipe_segs, &cmd);
 		if (!pid) {
 			printf("Job done %d\n%s", getpid(), PROMPT);
 			exit(1);
 		}
+
 	}
 
 	cleanup(&pipe_segs, &cmd);
