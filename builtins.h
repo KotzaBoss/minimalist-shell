@@ -1,13 +1,9 @@
-//
-// Created by kotzaboss on 20/02/2021.
-//
-
 #ifndef BUILTINS_H
 #define BUILTINS_H
 
-typedef int (*builtin)(char**, int, int);
+typedef int (*builtin)(const char** args);
 
 builtin get_func(const char* name);
-int builtin_cd(char** args, int, int);
+int builtin_cd(const char** args);
 
 #endif //BUILTINS_H

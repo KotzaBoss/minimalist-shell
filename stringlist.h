@@ -1,7 +1,3 @@
-//
-// Created by kotzaboss on 20/02/2021.
-//
-
 #ifndef STRINGLIST_H
 #define STRINGLIST_H
 
@@ -14,17 +10,26 @@ typedef struct StringList* StringList;
 
 StringList  StringList_new       ();
 void        StringList_free      (StringList* sl);
+
 /**
  * @brief Reserve `newalloc` space beyond current space. Useful to avoid
  * multiple re-allocations if size required is known
  */
 void        StringList_reserve   (StringList sl, int newalloc);
-void        StringList_push_back (StringList sl, const char* str);
-const char* StringList_at        (StringList sl, int idx);
-int         StringList_size      (StringList sl);
 
-//void stringlist_set_at(StringList sl, int idx, const char* val);
-//char* const* stringlist_release(StringList sl);
-//char* stringlist_join(StringList sl, char* outbuff, int size, const char* btw);
+/**
+ * @brief Append to the array. Should there not be enough space double size.
+ */
+void        StringList_push_back (StringList sl, const char* str);
+
+/**
+ * @brief Return element at index idx
+ */
+const char* StringList_at        (StringList sl, int idx);
+
+/**
+ * @brief Return size of string list
+ */
+int         StringList_size      (StringList sl);
 
 #endif //STRINGLIST_H

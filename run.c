@@ -1,15 +1,10 @@
-//
-// Created by kotzaboss on 22/02/2021.
-//
-
-#include "run.h"
-#include "interpret.h"
-#include "builtins.h"
 #include <unistd.h>
 #include <stdlib.h>
-#include <stdio.h>
+#include "interpret.h"
+#include "builtins.h"
+#include "run.h"
 
-int run_cmd_in_fork(int infd, int outfd, CMD cmd)
+int fork_exec_binary(int infd, int outfd, CMD cmd)
 {
 	int cpid = fork();
 	if (!cpid) {
@@ -21,20 +16,29 @@ int run_cmd_in_fork(int infd, int outfd, CMD cmd)
 			dup2(outfd, STDOUT_FILENO);
 			close(outfd);
 		}
-		return execvp(CMD_release(cmd)[0], CMD_release(cmd));
+		return execvp(CMD_release(cmd)[0], (char* const*)CMD_release(cmd));
 	}
 	return cpid;
 }
 
-int run_builtin(int infd, int outfd, builtin func, char** args)
+int fork_call_builtin(int infd, int outfd, builtin func, CMD cmd)
 {
-	if (infd != STDIN_FILENO) {  // reroute input of pipe
-		dup2(infd, STDIN_FILENO);
-		close(infd);
+	int cpid = getpid();
+	if (func != builtin_cd) {
+		cpid = fork();
+		if (!cpid) {
+			if (infd != STDIN_FILENO) {  // reroute input of pipe
+				dup2(infd, STDIN_FILENO);
+				close(infd);
+			}
+			if (outfd != STDOUT_FILENO) {  // rerout output of pipe
+				dup2(outfd, STDOUT_FILENO);
+				close(outfd);
+			}
+			exit(func(CMD_release(cmd)));
+		}
+		return cpid;
 	}
-	if (outfd != STDOUT_FILENO) {  // rerout output of pipe
-		dup2(outfd, STDOUT_FILENO);
-		close(outfd);
-	}
-	return func(args, infd, outfd);
+	func(CMD_release(cmd));
+	return cpid;
 }

@@ -1,7 +1,3 @@
-//
-// Created by kotzaboss on 20/02/2021.
-//
-
 #ifndef INTERPRET_H
 #define INTERPRET_H
 
@@ -26,21 +22,60 @@ typedef struct PipeSegments* PipeSegments;
  */
 typedef struct CMD* CMD;
 
+/**
+ * @brief Allocate memory for a new PipeSegments obj.
+ * CAUTION: Line should be sanatized through escape first.
+ */
 PipeSegmentMeta PipeSegmentMeta_new  ();
 void            PipeSegmentMeta_free (PipeSegmentMeta* psm);
 
 PipeSegments     PipeSegments_new   (char* line, int max_segments);
 void             PipeSegments_free  (PipeSegments* ps);
+
+/**
+ * @return The size field of PipeSegments
+ */
 int              PipeSegments_size  (PipeSegments ps);
+
+/**
+ * @return The metas field of PipeSegments
+ */
 PipeSegmentMeta* PipeSegments_metas (PipeSegments ps);
+
+/**
+ * @return Last pipe segment
+ */
 PipeSegmentMeta  PipeSegments_last  (PipeSegments ps);
+
+/**
+ * @return The wait field of PipeSegment
+ */
 bool             PipeSegments_wait  (PipeSegments ps);
 
+/**
+ * @brief Create a new CMD. Its total length is command + number_of_args + NULL.
+ * NULL is very important for execvp.
+ */
 CMD    CMD_new     (PipeSegmentMeta psm);
 void   CMD_free    (CMD* cmd);
-char** CMD_release (CMD cmd);
+
+/**
+ * @brief Return the encapsulated const char** array.
+ */
+const char** CMD_release (CMD cmd);
+
+/**
+ * @brief Return the name of the command, which is always the first.
+ * eg: {"echo", "1"}[0], {"grep", "abc", "./file,txt"}[0]
+ */
 const char* CMD_name (CMD cmd);
 
-void prepare_cmd(PipeSegmentMeta psm, char** dest);
+/**
+ * @brief Shell like expansion of buffer which is *overwritten*.
+ * If resulting string size is greater that buffer size return NULL else
+ * return the pointer to the buffer.
+ * @param buffer Buffer scanned and overwritten.
+ */
+char* expand_buffer(char* buffer, int max_size);
 
 #endif //INTERPRET_H

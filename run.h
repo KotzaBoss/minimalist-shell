@@ -1,7 +1,3 @@
-//
-// Created by kotzaboss on 22/02/2021.
-//
-
 #ifndef RUN_H
 #define RUN_H
 
@@ -13,7 +9,13 @@
  * @param infd Input file descriptor.
  * @param outfd Output file descriptor.
  */
-int run_cmd_in_fork(int infd, int outfd, CMD cmd);
-int run_builtin(int infd, int outfd, builtin func, char** args);
+int fork_exec_binary(int infd, int outfd, CMD cmd);
+
+/**
+ * @brief Run func with cmd arguments. If the function is builtin_cd the *dont* fork.
+ * @param infd Input file description
+ * @param outfd Output file descriptor
+ */
+int fork_call_builtin(int infd, int outfd, builtin func, CMD cmd);
 
 #endif //RUN_H
