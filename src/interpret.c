@@ -9,7 +9,7 @@
 
 struct PipeSegmentMeta
 {
-	char* cmd;  // TODO solve name class with CMD, perhaps bin?
+	char* cmd;  // FIX solve name clash with CMD, perhaps bin?
 	StringList args;
 };
 
@@ -99,28 +99,21 @@ PipeSegments PipeSegments_new(char* line, int max_segments)
 	psegs->size = 0;
 	psegs->wait = true;
 
-	if (line[strlen(line) - 1] == '&') {
-		psegs->wait = false;
-	}
 	char* wait_chr = strchr(line, WAIT_CHAR);
 	if (wait_chr) {
-//		if ((wait_chr[1] != '\0') && (wait_chr[1] != '\n')) {  // If not at the end
-//			PipeSegments_free(&psegs);
-//			return NULL;
-//		}
-//		else {
+		psegs->wait = false;
 		*wait_chr = '\0';
-//		}
 	}
 
-	char* segments[max_segments];  // TODO: make vector
+	char* segments[max_segments];
 	for (char* token = strtok(line, PIPE_TOKENS);
 	     token;
-	     token = strtok(NULL, PIPE_TOKENS), ++psegs->size) {
+	     token = strtok(NULL, PIPE_TOKENS), ++psegs->size)
+	{
 		segments[psegs->size] = token;
 	}
 
-	for (int i = 0; i < psegs->size; ++i) {  // TODO array of arguments char** ["asd", "asd]
+	for (int i = 0; i < psegs->size; ++i) {
 		psegs->metas[i] = inner_tokenize(segments[i]);
 	}
 

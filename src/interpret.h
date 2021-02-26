@@ -29,6 +29,15 @@ typedef struct CMD* CMD;
 PipeSegmentMeta PipeSegmentMeta_new  ();
 void            PipeSegmentMeta_free (PipeSegmentMeta* psm);
 
+/**
+ * @brief Parse LINE and create new PipeSegments. CAUTION: LINE should be sanatized
+ * through main.c:input before use.
+ * Parsing consists of a few steps
+ * 1. Find & and set wait flag
+ * 2. Tokenize the line into "pipe segments"
+ * 3. Tokenize each of these segments and create a StringList of each token
+ *    at PipeSegments->metas.
+ */
 PipeSegments     PipeSegments_new   (char* line, int max_segments);
 void             PipeSegments_free  (PipeSegments* ps);
 
