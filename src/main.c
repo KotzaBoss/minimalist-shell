@@ -64,7 +64,7 @@ int main()
 			PERROR("`input` returned NULL");
 			continue;
 		}
-		if (!strcmp(uin, "\n")) {  // Only enter pressed
+		if (!strcmp(uin, "\0")) {  // Only enter pressed
 			continue;
 		}
 		if (!strcmp(uin, "exit")) {

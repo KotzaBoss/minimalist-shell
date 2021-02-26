@@ -36,7 +36,7 @@ void            PipeSegmentMeta_free (PipeSegmentMeta* psm);
  * 1. Find & and set wait flag
  * 2. Tokenize the line into "pipe segments"
  * 3. Tokenize each of these segments and create a StringList of each token
- *    at PipeSegments->metas.
+ *    at PipeSegments->metas->args.
  */
 PipeSegments     PipeSegments_new   (char* line, int max_segments);
 void             PipeSegments_free  (PipeSegments* ps);
