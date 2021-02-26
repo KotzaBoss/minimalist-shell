@@ -18,6 +18,8 @@
     fprintf(stderr, "~%s:%d: ", __FILE__, __LINE__); \
     perror(str);
 
+char uinbuffer[IN_BUFF_SIZE];
+
 static
 void cleanup(PipeSegments* ps, CMD* cmd)
 {
@@ -28,8 +30,6 @@ void cleanup(PipeSegments* ps, CMD* cmd)
 		CMD_free(cmd);
 	}
 }
-
-char uinbuffer[IN_BUFF_SIZE];
 
 static
 char* input(const char* prompt)
@@ -53,9 +53,11 @@ int main()
 	PipeSegments pipe_segs = NULL;
 	CMD cmd = NULL;
 
+	dup2(STDOUT_FILENO, STDERR_FILENO);
+
 	while (true) {
 	WhileTop:
-		memset(uinbuffer, 0, sizeof(uinbuffer));  // Aggressive reset
+//		memset(uinbuffer, 0, sizeof(uinbuffer));  // Aggressive reset
 
 		uin = input(PROMPT);
 		if (!uin) {
@@ -83,7 +85,7 @@ int main()
 				continue;
 			}
 			if (pid) {
-				printf("Starting job %d\n", pid);
+				printf("<-- Starting job %d\n", pid);
 				continue;
 			}
 		}  // Child continues
@@ -130,7 +132,7 @@ int main()
 
 		cleanup(&pipe_segs, &cmd);
 		if (!pid) {
-			printf("Job done %d\n%s", getpid(), PROMPT);
+			printf("--> Job done %d\n%s", getpid(), PROMPT);
 			exit(1);
 		}
 

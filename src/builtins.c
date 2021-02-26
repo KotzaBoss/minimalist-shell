@@ -17,8 +17,6 @@ int builtin_pwd(const char** args)
 	return 1;  // Unfortunate reversal. NULL should return 1
 }
 
-
-// TODO: doesnt work with .. (and in general)
 int builtin_cd(const char** args)
 {
 	const char* dir = args[1];
@@ -56,6 +54,7 @@ builtin func[] = {
 	&builtin_ls
 };
 
+static
 int total_builtins() {
 	return sizeof(names) / sizeof(char*);  // note to self: total bytes / elem type
 }
